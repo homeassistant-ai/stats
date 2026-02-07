@@ -1,0 +1,59 @@
+name: Collect Statistics
+
+on:
+  schedule:
+    # Run every Tuesday at 10:00 UTC
+    - cron: '0 10 * * 2'
+  workflow_dispatch:
+    inputs:
+      fetch_ghcr:
+        description: 'Attempt to fetch GHCR counts (experimental)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq bc curl
+
+      - name: Collect statistics
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x collect-stats.sh
+          ./collect-stats.sh
+
+      - name: Note GHCR manual step
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          echo "⚠️ GHCR download counts must be updated manually in ${DATE}.md"
+          echo "Visit: https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp"
+
+      - name: Commit and push changes
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add "${DATE}.md"
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: collect statistics for ${DATE}
+
+Note: GHCR download counts require manual update.
+Visit https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp to fetch counts."
+            git push
+          fi
