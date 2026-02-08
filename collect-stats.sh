@@ -64,6 +64,26 @@ WEEK_UNIQUE_CLONERS=$(echo "$CLONES_DATA" | jq '[.clones[-7:][].uniques] | add /
 WEEK_VIEWS=$(echo "$VIEWS_DATA" | jq '[.views[-7:][].count] | add // 0')
 WEEK_UNIQUE_VISITORS=$(echo "$VIEWS_DATA" | jq '[.views[-7:][].uniques] | add // 0')
 
+# Fetch GHCR download counts
+echo "Fetching GHCR download counts..."
+SCRIPT_DIR="$(dirname "$0")"
+if [ -x "$SCRIPT_DIR/fetch-ghcr-stats.sh" ]; then
+    GHCR_JSON=$("$SCRIPT_DIR/fetch-ghcr-stats.sh" --json 2>/dev/null || echo "{}")
+    GHCR_HA_MCP=$(echo "$GHCR_JSON" | jq -r '."ha-mcp" // "TODO"' | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+    GHCR_AMD64=$(echo "$GHCR_JSON" | jq -r '."ha-mcp-addon-amd64" // "TODO"' | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+    GHCR_AARCH64=$(echo "$GHCR_JSON" | jq -r '."ha-mcp-addon-aarch64" // "TODO"' | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+    GHCR_DEV_AMD64=$(echo "$GHCR_JSON" | jq -r '."ha-mcp-addon-dev-amd64" // "TODO"')
+    GHCR_DEV_AARCH64=$(echo "$GHCR_JSON" | jq -r '."ha-mcp-addon-dev-aarch64" // "TODO"')
+    GHCR_TOTAL=$(echo "$GHCR_JSON" | jq -r '.total // "TODO"' | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+else
+    GHCR_HA_MCP="TODO"
+    GHCR_AMD64="TODO"
+    GHCR_AARCH64="TODO"
+    GHCR_DEV_AMD64="TODO"
+    GHCR_DEV_AARCH64="TODO"
+    GHCR_TOTAL="TODO"
+fi
+
 # Write report
 cat > "$OUTPUT_FILE" << EOF
 # ha-mcp Statistics - ${DATE}
@@ -112,18 +132,18 @@ cat > "$OUTPUT_FILE" << EOF
 
 ---
 
-## GHCR Container Downloads (MANUAL - check UI)
+## GHCR Container Downloads
 
 Visit: https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp
 
 | Package | Downloads |
 |---------|-----------|
-| ha-mcp | TODO |
-| ha-mcp-addon-amd64 | TODO |
-| ha-mcp-addon-aarch64 | TODO |
-| ha-mcp-addon-dev-amd64 | TODO |
-| ha-mcp-addon-dev-aarch64 | TODO |
-| **Total** | **TODO** |
+| ha-mcp | ${GHCR_HA_MCP} |
+| ha-mcp-addon-amd64 | ${GHCR_AMD64} |
+| ha-mcp-addon-aarch64 | ${GHCR_AARCH64} |
+| ha-mcp-addon-dev-amd64 | ${GHCR_DEV_AMD64} |
+| ha-mcp-addon-dev-aarch64 | ${GHCR_DEV_AARCH64} |
+| **Total** | **${GHCR_TOTAL}** |
 
 ---
 
@@ -136,7 +156,13 @@ EOF
 
 echo ""
 echo "Stats written to: ${OUTPUT_FILE}"
-echo ""
-echo "MANUAL STEP REQUIRED:"
-echo "  1. Visit https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp"
-echo "  2. Update the GHCR download counts in ${OUTPUT_FILE}"
+
+if [ "$GHCR_HA_MCP" == "TODO" ]; then
+    echo ""
+    echo "⚠️  GHCR download counts could not be fetched automatically."
+    echo "   Run ./fetch-ghcr-stats.sh to try again, or update manually:"
+    echo "   https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp"
+else
+    echo ""
+    echo "✅ GHCR download counts fetched successfully!"
+fi
