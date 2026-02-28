@@ -30,7 +30,7 @@ jobs:
 
       - name: Collect statistics
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.HAMCP_TOKEN }}
         run: |
           chmod +x collect-stats.sh
           ./collect-stats.sh
