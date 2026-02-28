@@ -51,9 +51,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: collect statistics for ${DATE}
-
-Note: GHCR download counts require manual update.
-Visit https://github.com/orgs/homeassistant-ai/packages?repo_name=ha-mcp to fetch counts."
+            git commit -m "chore: collect statistics for ${DATE}"
             git push
           fi
